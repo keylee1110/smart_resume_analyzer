@@ -1,0 +1,112 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Smart Resume Analyzer Backend
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: dotnet8
+    Architectures:
+      - x86_64
+
+Resources:
+  # ===============================================================
+  # == Tài nguyên cho Dev A: "The Parser"
+  # ===============================================================
+  ResumesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "smart-resume-analyzer-resumes-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  ParseResumeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/TheParser/
+      Handler: TheParser::TheParser.Function::FunctionHandler
+      Events:
+        S3Event:
+          Type: S3
+          Properties:
+            Bucket: !Ref ResumesBucket
+            Events: s3:ObjectCreated:*
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !GetAtt ResumesBucket.Name
+        - Statement:
+          - Effect: Allow
+            Action:
+              - textract:DetectDocumentText
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - lambda:InvokeFunction
+            Resource: !GetAtt AnalyzeResumeFunction.Arn
+    Environment:
+      Variables:
+        ANALYZER_FUNCTION_NAME: !Ref AnalyzeResumeFunction
+
+  # ===============================================================
+  # == Tài nguyên cho Dev B: "The Analyzer"
+  # ===============================================================
+  AnalyzeResumeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/TheAnalyzer/
+      Handler: TheAnalyzer::TheAnalyzer.Function::FunctionHandler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AnalysesTable
+        - Statement:
+          - Effect: Allow
+            Action:
+              - comprehend:DetectEntities
+            Resource: "*"
+    Environment:
+      Variables:
+        ANALYSES_TABLE_NAME: !Ref AnalysesTable
+
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'" # Thay '*' bằng domain của frontend sau này
+
+  GetAnalysisApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/TheAnalyzer/
+      Handler: TheAnalyzer::TheAnalyzer.Api::GetAnalysisById
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref AnalysesTable
+      Environment:
+        Variables:
+          ANALYSES_TABLE_NAME: !Ref AnalysesTable
+      Events:
+        GetEvent:
+          Type: Api
+          Properties:
+            Path: /resumes/{id}
+            Method: get
+            RestApiId: !Ref ApiGateway
+
+  # ===============================================================
+  # == Tài nguyên chung: Database
+  # ===============================================================
+  AnalysesTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: SmartResume-Analyses
+      PrimaryKey:
+        Name: analysisId
+        Type: String
