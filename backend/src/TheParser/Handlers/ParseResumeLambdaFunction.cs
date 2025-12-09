@@ -5,6 +5,7 @@ using Amazon.Lambda.S3Events;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Logging;
+using System.Net; // Added for UrlDecode
 using TheParser.Interfaces;
 using TheParser.Models;
 using TheParser.Exceptions;
@@ -140,7 +141,8 @@ public class ParseResumeLambdaFunction
         {
             // Extract bucket name and object key
             var bucketName = record.S3.Bucket.Name;
-            var objectKey = record.S3.Object.Key;
+            // IMPORTANT: S3 event keys are URL encoded. We must decode them to get the actual filename (e.g. dealing with spaces or special chars)
+            var objectKey = WebUtility.UrlDecode(record.S3.Object.Key);
             
             context.Logger.LogLine($"[{correlationId}] Processing file: s3://{bucketName}/{objectKey}");
             
@@ -166,6 +168,9 @@ public class ParseResumeLambdaFunction
             
             // Extract UserID from S3 Key (Format: private/{userId}/{guid}-{filename})
             string userId = "anonymous";
+            // Use the objectKey (which is now decoded) for splitting
+            // Note: If the folder structure in S3 actually uses encoded names, we might need to be careful,
+            // but standard S3 practice is: Key in bucket is "Folder Name/File Name", Event has "Folder%20Name/File%20Name".
             var keyParts = objectKey.Split('/');
             if (keyParts.Length >= 3 && keyParts[0] == "private")
             {
