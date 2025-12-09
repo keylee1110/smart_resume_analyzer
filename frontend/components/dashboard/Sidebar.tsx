@@ -1,8 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
 import {
     LayoutDashboard,
     FileText,
@@ -12,11 +9,14 @@ import {
     Sparkles,
     BarChart2,
     Users,
+    ChevronLeft, // Added
+    ChevronRight, // Added
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion"; // Added AnimatePresence
 import { signOut, getCurrentUser } from "aws-amplify/auth";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button"; // Added Button
 
 const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
@@ -26,7 +26,12 @@ const navItems = [
     { icon: Settings, label: "Settings", href: "/settings" },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+    isCollapsed: boolean;
+    setIsCollapsed: (collapsed: boolean) => void;
+}
+
+export function Sidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
     const [user, setUser] = useState<any>(null);
@@ -56,22 +61,43 @@ export function Sidebar() {
 
     return (
         <motion.aside
-            initial={{ x: -20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            className="hidden md:flex flex-col w-64 h-screen fixed left-0 top-0 border-r border-sidebar-border bg-sidebar backdrop-blur-xl z-50"
+            initial={{ width: 256 }}
+            animate={{ width: isCollapsed ? 80 : 256 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="flex flex-col h-screen fixed left-0 top-0 border-r border-sidebar-border bg-sidebar backdrop-blur-xl z-50 group/sidebar"
         >
+            {/* Toggle Button */}
+            <Button
+                variant="outline"
+                size="icon"
+                className="absolute -right-4 top-6 h-8 w-8 rounded-full border-border bg-background shadow-md z-50 hover:bg-accent hover:text-primary md:flex items-center justify-center"
+                onClick={() => setIsCollapsed(!isCollapsed)}
+            >
+                {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            </Button>
+
             {/* Logo Section */}
-            <div className="p-6 flex items-center gap-2">
+            <div className={cn("p-6 flex items-center h-[89px]", isCollapsed ? "justify-center px-2" : "gap-2")}>
                 <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-primary to-accent shadow-lg shadow-primary/20">
                     <Sparkles className="w-6 h-6 text-primary-foreground" />
                 </div>
-                <span className="text-xl font-bold font-heading tracking-tight text-foreground">
-                    SmartResume
-                </span>
+                <AnimatePresence mode="wait">
+                    {!isCollapsed && (
+                        <motion.span
+                            initial={{ opacity: 0, width: 0 }}
+                            animate={{ opacity: 1, width: "auto" }}
+                            exit={{ opacity: 0, width: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="text-xl font-bold font-heading tracking-tight text-foreground whitespace-nowrap"
+                        >
+                            SmartResume
+                        </motion.span>
+                    )}
+                </AnimatePresence>
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 px-4 py-6 space-y-2">
+            <nav className="flex-1 px-4 py-6 space-y-2 overflow-x-hidden">
                 {navItems.map((item) => {
                     const isActive = pathname === item.href;
                     const Icon = item.icon;
@@ -84,7 +110,8 @@ export function Sidebar() {
                                 "group relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300",
                                 isActive
                                     ? "text-primary font-semibold bg-primary/10 shadow-[0_0_20px_rgba(139,92,246,0.15)]"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                                isCollapsed && "justify-center px-0"
                             )}
                         >
                             {isActive && (
@@ -96,31 +123,54 @@ export function Sidebar() {
                             <Icon
                                 className={cn(
                                     "w-5 h-5 transition-colors",
-                                    isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                                    isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
+                                    isCollapsed && "min-w-[1.25rem]"
                                 )}
                             />
-                            <span className="font-medium">{item.label}</span>
+                            <AnimatePresence mode="wait">
+                                {!isCollapsed && (
+                                    <motion.span
+                                        initial={{ opacity: 0, width: 0 }}
+                                        animate={{ opacity: 1, width: "auto" }}
+                                        exit={{ opacity: 0, width: 0 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="font-medium whitespace-nowrap overflow-hidden"
+                                    >
+                                        {item.label}
+                                    </motion.span>
+                                )}
+                            </AnimatePresence>
                         </Link>
                     );
                 })}
             </nav>
 
             {/* Footer / User Profile */}
-            <div className="p-4 border-t border-sidebar-border bg-black/20">
+            <div className={cn("p-4 border-t border-sidebar-border bg-black/20", isCollapsed && "flex justify-center px-2")}>
                 <button
                     onClick={handleLogout}
-                    className="flex items-center gap-3 w-full p-2 rounded-xl hover:bg-muted/50 transition-colors group"
+                    className={cn("flex items-center gap-3 w-full p-2 rounded-xl hover:bg-muted/50 transition-colors group", isCollapsed && "justify-center px-0")}
                 >
                     <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-500 flex items-center justify-center text-xs font-bold text-primary-foreground ring-2 ring-border uppercase">
                         {user?.signInDetails?.loginId?.substring(0, 2) || user?.username?.substring(0, 2) || "US"}
                     </div>
-                    <div className="flex-1 text-left overflow-hidden">
-                        <p className="text-sm font-medium text-foreground truncate">
-                            {user?.signInDetails?.loginId || user?.username || "User"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Pro Plan</p>
-                    </div>
-                    <LogOut className="w-4 h-4 text-muted-foreground group-hover:text-rose-400 transition-colors" />
+                    <AnimatePresence mode="wait">
+                        {!isCollapsed && (
+                            <motion.div
+                                initial={{ opacity: 0, width: 0 }}
+                                animate={{ opacity: 1, width: "auto" }}
+                                exit={{ opacity: 0, width: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="flex-1 text-left overflow-hidden whitespace-nowrap"
+                            >
+                                <p className="text-sm font-medium text-foreground truncate">
+                                    {user?.signInDetails?.loginId || user?.username || "User"}
+                                </p>
+                                <p className="text-xs text-muted-foreground">Pro Plan</p>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                    <LogOut className={cn("w-4 h-4 text-muted-foreground group-hover:text-rose-400 transition-colors", isCollapsed && "min-w-[1rem]")} />
                 </button>
             </div>
         </motion.aside>

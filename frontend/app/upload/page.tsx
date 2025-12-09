@@ -94,13 +94,13 @@ export default function UploadPage() {
           <div className="mb-8 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link
-                href="/"
+                href="/dashboard" // Changed from "/" to "/dashboard"
                 className="p-2 rounded-xl text-muted-foreground hover:text-white hover:bg-white/5 transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
               </Link>
               <div>
-                <h1 className="text-3xl font-bold font-heading text-white">Check Job Fit</h1>
+                <h1 className="text-3xl font-bold font-heading text-primary">Check Job Fit</h1> {/* Changed from text-white to text-primary */}
                 <p className="text-muted-foreground">Compare a Resume against a Job Description.</p>
               </div>
             </div>
