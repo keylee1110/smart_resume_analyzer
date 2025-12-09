@@ -6,15 +6,39 @@ Description: >
 Globals:
   Function:
     Timeout: 30
-    MemorySize: 512
+    MemorySize: 128
     Runtime: dotnet8
     Architectures:
-      - x86_64
+      - arm64
 
 Resources:
   # ===============================================================
   # == Tài nguyên cho Dev A: "The Parser"
   # ===============================================================
+  
+  ParseResumeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/TheParser/
+      Handler: TheParser::TheParser.Handlers.ParseResumeLambdaFunction::FunctionHandler
+      Timeout: 60
+      MemorySize: 1024
+      Environment:
+        Variables:
+          ANALYZER_FUNCTION_NAME: !Ref NlpAnalyzeFunction
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Sub "smart-resume-analyzer-resumes-${AWS::AccountId}"
+        - Statement:
+          - Effect: Allow
+            Action:
+              - textract:DetectDocumentText
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - lambda:InvokeFunction
+            Resource: !GetAtt NlpAnalyzeFunction.Arn
+
   ResumesBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -24,42 +48,362 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: s3:ObjectCreated:*
+            Function: !GetAtt ParseResumeFunction.Arn
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+              - HEAD
+            AllowedOrigins:
+              - "*"
+            MaxAge: 3000
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteAfter1Day
+            Status: Enabled
+            ExpirationInDays: 1
 
-  ParseResumeFunction:
-    Type: AWS::Serverless::Function
+  ParseResumeFunctionS3Permission:
+    Type: AWS::Lambda::Permission
     Properties:
-      CodeUri: src/TheParser/
-      Handler: TheParser::TheParser.Function::FunctionHandler
-      Events:
-        S3Event:
-          Type: S3
-          Properties:
-            Bucket: !Ref ResumesBucket
-            Events: s3:ObjectCreated:*
-      Policies:
-        - S3ReadPolicy:
-            BucketName: !GetAtt ResumesBucket.Name
-        - Statement:
-          - Effect: Allow
-            Action:
-              - textract:DetectDocumentText
-            Resource: "*"
-          - Effect: Allow
-            Action:
-              - lambda:InvokeFunction
-            Resource: !GetAtt AnalyzeResumeFunction.Arn
-    Environment:
-      Variables:
-        ANALYZER_FUNCTION_NAME: !Ref AnalyzeResumeFunction
+      FunctionName: !Ref ParseResumeFunction
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub "arn:aws:s3:::smart-resume-analyzer-resumes-${AWS::AccountId}"
 
   # ===============================================================
   # == Tài nguyên cho Dev B: "The Analyzer"
   # ===============================================================
+  
+  # DynamoDB Table for Resume Analyzer
+  ResumeAnalyzerTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ResumeAnalyzerTable
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: UserId
+          AttributeType: S
+        - AttributeName: UserTimestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      Tags:
+        - Key: Project
+          Value: SmartResumeAnalyzer
+        - Key: Component
+          Value: TheAnalyzer
+      GlobalSecondaryIndexes:
+        - IndexName: GSI-User
+          KeySchema:
+            - AttributeName: UserId
+              KeyType: HASH
+            - AttributeName: UserTimestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  # nlpAnalyze Lambda Function
+  NlpAnalyzeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ResumeAnalyzer-NlpAnalyze
+      CodeUri: src/TheAnalyzer/src/TheAnalyzer/
+      Handler: TheAnalyzer::TheAnalyzer.Handlers.AnalyzeLambdaFunction::FunctionHandler
+      Description: Analyzes CV text and extracts entities using AWS Comprehend
+      MemorySize: 1024
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ResumeAnalyzerTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - comprehend:DetectEntities
+                - comprehend:DetectKeyPhrases
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/*"
+      Events:
+        AnalyzeApi:
+          Type: Api
+          Properties:
+            Path: /analyze
+            Method: POST
+            RestApiId: !Ref ResumeAnalyzerApi
+            Auth:
+              Authorizer: CognitoAuthorizer
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ResumeAnalyzerTable
+      Tags:
+        Project: SmartResumeAnalyzer
+        Component: TheAnalyzer
+
+  # GetResume Lambda Function
+  GetResumeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ResumeAnalyzer-GetResume
+      CodeUri: src/TheAnalyzer/src/TheAnalyzer/
+      Handler: TheAnalyzer::TheAnalyzer.Handlers.GetResumeLambdaFunction::FunctionHandler
+      Description: Retrieves analyzed resume profile by ID
+      MemorySize: 1024
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref ResumeAnalyzerTable
+        - S3ReadPolicy:
+            BucketName: !Sub "smart-resume-analyzer-resumes-${AWS::AccountId}"
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ResumeAnalyzerTable
+          BUCKET_NAME: !Ref ResumesBucket
+      Events:
+        GetResumeApi:
+          Type: Api
+          Properties:
+            Path: /resumes/{id+}
+            Method: GET
+            RestApiId: !Ref ResumeAnalyzerApi
+            Auth:
+              Authorizer: CognitoAuthorizer
+      Tags:
+        Project: SmartResumeAnalyzer
+        Component: TheAnalyzer
+
+  ListResumesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ResumeAnalyzer-ListResumes
+      CodeUri: src/TheAnalyzer/src/TheAnalyzer/
+      Handler: TheAnalyzer::TheAnalyzer.Handlers.ListResumesLambdaFunction::FunctionHandler
+      Description: Lists all resumes for a user
+      MemorySize: 1024
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ResumeAnalyzerTable
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref ResumeAnalyzerTable
+      Events:
+        ListResumesApi:
+          Type: Api
+          Properties:
+            Path: /resumes
+            Method: GET
+            RestApiId: !Ref ResumeAnalyzerApi
+            Auth:
+              Authorizer: CognitoAuthorizer
+      Tags:
+        Project: SmartResumeAnalyzer
+        Component: TheAnalyzer
+
+  # API Gateway for Resume Analyzer
+  ResumeAnalyzerApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: ResumeAnalyzerApi
+      StageName: Prod
+      Cors:
+        AllowMethods: "'GET, POST, PUT, DELETE, OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'"
+        AllowOrigin: "'*'"
+        AllowCredentials: false
+        MaxAge: "'600'"
+      Auth:
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt SmartResumeUserPool.Arn
+            Identity:
+              Header: Authorization
+      Tags:
+        Project: SmartResumeAnalyzer
+        Component: TheAnalyzer
+
+  ResumeAnalyzerApiGatewayResponseDefault4XX:
+    Type: 'AWS::ApiGateway::GatewayResponse'
+    Properties:
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+      ResponseType: DEFAULT_4XX
+      RestApiId: !Ref ResumeAnalyzerApi
+
+  ResumeAnalyzerApiGatewayResponseDefault5XX:
+    Type: 'AWS::ApiGateway::GatewayResponse'
+    Properties:
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+      ResponseType: DEFAULT_5XX
+      RestApiId: !Ref ResumeAnalyzerApi
+
+  # ===============================================================
+  # == New Resources: Authentication & Uploads
+  # ===============================================================
+
+  SmartResumeUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: SmartResumeUserPool
+      AutoVerifiedAttributes:
+        - email
+      UsernameAttributes:
+        - email
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          RequireUppercase: true
+
+  SmartResumeUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: SmartResumeWebClient
+      UserPoolId: !Ref SmartResumeUserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
+
+  GetUploadUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ResumeAnalyzer-GetUploadUrl
+      CodeUri: src/TheAnalyzer/src/TheAnalyzer/
+      Handler: TheAnalyzer::TheAnalyzer.Handlers.GetUploadUrlLambdaFunction::FunctionHandler
+      Description: Generates Presigned URLs for S3 uploads
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref ResumesBucket
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Sub "smart-resume-analyzer-resumes-${AWS::AccountId}"
+      Events:
+        GetUploadUrlApi:
+          Type: Api
+          Properties:
+            Path: /upload-url
+            Method: GET
+            RestApiId: !Ref ResumeAnalyzerApi
+            Auth:
+              Authorizer: CognitoAuthorizer
+      Tags:
+        Project: SmartResumeAnalyzer
+        Component: TheAnalyzer
+
+  # ===============================================================
+  # == New Resources: AI Coach Chatbot
+  # ===============================================================
+  ChatFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ChatFunction}"
+      RetentionInDays: 7
+
+  ChatFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ResumeAnalyzer-ChatFunction
+      CodeUri: src/TheChatbot/TheChatbot/src/TheChatbot/
+      Handler: TheChatbot::TheChatbot.Handlers.ChatLambdaFunction::FunctionHandler
+      Description: AI Career Coach Chatbot - Handles chat messages with context-aware AI responses
+      Timeout: 120
+      MemorySize: 2048
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/*"
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ResumeAnalyzerTable
+        - S3ReadPolicy:
+            BucketName: !Sub "smart-resume-analyzer-resumes-${AWS::AccountId}"
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ResumeAnalyzerTable
+          BUCKET_NAME: !Ref ResumesBucket
+          BEDROCK_MODEL_ID: anthropic.claude-3-sonnet-20240229-v1:0
+      Events:
+        ChatApi:
+          Type: Api
+          Properties:
+            Path: /chat
+            Method: POST
+            RestApiId: !Ref ResumeAnalyzerApi
+            Auth:
+              Authorizer: CognitoAuthorizer
+      Tags:
+        Project: SmartResumeAnalyzer
+        Component: TheChatbot
+
+  GetChatHistoryFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ResumeAnalyzer-GetChatHistory
+      CodeUri: src/TheChatbot/TheChatbot/src/TheChatbot/
+      Handler: TheChatbot::TheChatbot.Handlers.GetChatHistoryLambdaFunction::FunctionHandler
+      Description: Retrieves chat history for a specific resume analysis session
+      Timeout: 30
+      MemorySize: 512
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref ResumeAnalyzerTable
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ResumeAnalyzerTable
+      Events:
+        GetChatHistoryApi:
+          Type: Api
+          Properties:
+            Path: /chat/history/{resumeId}
+            Method: GET
+            RestApiId: !Ref ResumeAnalyzerApi
+            Auth:
+              Authorizer: CognitoAuthorizer
+      Tags:
+        Project: SmartResumeAnalyzer
+        Component: TheChatbot
+        
+  # ===============================================================
+  # == Legacy resources (kept for backward compatibility)
+  # ===============================================================
   AnalyzeResumeFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/TheAnalyzer/
+      CodeUri: src/TheAnalyzer/src/TheAnalyzer/
       Handler: TheAnalyzer::TheAnalyzer.Function::FunctionHandler
+      Environment:
+        Variables:
+          ANALYSES_TABLE_NAME: !Ref AnalysesTable
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref AnalysesTable
@@ -68,9 +412,6 @@ Resources:
             Action:
               - comprehend:DetectEntities
             Resource: "*"
-    Environment:
-      Variables:
-        ANALYSES_TABLE_NAME: !Ref AnalysesTable
 
   ApiGateway:
     Type: AWS::Serverless::Api
@@ -84,14 +425,14 @@ Resources:
   GetAnalysisApiFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/TheAnalyzer/
+      CodeUri: src/TheAnalyzer/src/TheAnalyzer/
       Handler: TheAnalyzer::TheAnalyzer.Api::GetAnalysisById
-      Policies:
-        - DynamoDBReadPolicy:
-            TableName: !Ref AnalysesTable
       Environment:
         Variables:
           ANALYSES_TABLE_NAME: !Ref AnalysesTable
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref AnalysesTable
       Events:
         GetEvent:
           Type: Api
@@ -110,3 +451,41 @@ Resources:
       PrimaryKey:
         Name: analysisId
         Type: String
+
+Outputs:
+  # Resume Analyzer Outputs
+  ResumeAnalyzerTableName:
+    Description: DynamoDB table name for resume profiles
+    Value: !Ref ResumeAnalyzerTable
+    Export:
+      Name: ResumeAnalyzerTableName
+
+  NlpAnalyzeFunctionArn:
+    Description: ARN of the nlpAnalyze Lambda function
+    Value: !GetAtt NlpAnalyzeFunction.Arn
+    Export:
+      Name: NlpAnalyzeFunctionArn
+
+  GetResumeFunctionArn:
+    Description: ARN of the GetResume Lambda function
+    Value: !GetAtt GetResumeFunction.Arn
+    Export:
+      Name: GetResumeFunctionArn
+
+  ResumeAnalyzerApiEndpoint:
+    Description: API Gateway endpoint URL for Resume Analyzer
+    Value: !Sub 'https://${ResumeAnalyzerApi}.execute-api.${AWS::Region}.amazonaws.com/Prod'
+    Export:
+      Name: ResumeAnalyzerApiEndpoint
+
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref SmartResumeUserPool
+    Export:
+      Name: SmartResumeUserPoolId
+
+  UserPoolClientId:
+    Description: Cognito User Pool Client ID
+    Value: !Ref SmartResumeUserPoolClient
+    Export:
+      Name: SmartResumeUserPoolClientId

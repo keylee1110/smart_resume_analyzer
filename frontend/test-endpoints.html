@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Endpoint Testing - Smart Resume Analyzer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            background: #f9f9f9;
+        }
+        .test-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-pending { background: #ffd700; color: #000; }
+        .status-success { background: #4caf50; color: white; }
+        .status-error { background: #f44336; color: white; }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover { background: #5568d3; transform: translateY(-2px); }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        textarea { min-height: 100px; resize: vertical; }
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .result.success { border-color: #4caf50; background: #f1f8f4; }
+        .result.error { border-color: #f44336; background: #fef1f0; }
+        .auth-status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .auth-status.authenticated {
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+        }
+        .auth-status.not-authenticated {
+            background: #ffebee;
+            border: 2px solid #f44336;
+        }
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+        .file-input-label {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .file-input-label:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        .file-name {
+            margin-left: 10px;
+            color: #666;
+            font-size: 14px;
+        }
+        .summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        .summary h3 {
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        .summary-stats {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .summary-stat {
+            flex: 1;
+            min-width: 150px;
+        }
+        .summary-stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        .summary-stat-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 API Endpoint Testing</h1>
+        <p class="subtitle">Smart Resume Analyzer - Frontend Integration Tests</p>
+
+        <!-- Summary Section -->
+        <div class="summary">
+            <h3>Test Summary</h3>
+            <div class="summary-stats">
+                <div class="summary-stat">
+                    <div class="summary-stat-label">Total Tests</div>
+                    <div class="summary-stat-value" id="totalTests">0</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="summary-stat-label">Passed</div>
+                    <div class="summary-stat-value" id="passedTests">0</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="summary-stat-label">Failed</div>
+                    <div class="summary-stat-value" id="failedTests">0</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="summary-stat-label">CORS Errors</div>
+                    <div class="summary-stat-value" id="corsErrors">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Authentication Status -->
+        <div id="authStatus" class="auth-status not-authenticated">
+            <div>
+                <strong>Authentication Status:</strong> <span id="authStatusText">Not Authenticated</span>
+            </div>
+            <div>
+                <button onclick="showAuthInstructions()">How to Authenticate</button>
+            </div>
+        </div>
+
+        <!-- Configuration Section -->
+        <div class="test-section">
+            <h2>⚙️ Configuration</h2>
+            <div class="input-group">
+                <label for="apiUrl">API Base URL</label>
+                <input type="text" id="apiUrl" value="https://t7hskmmg0d.execute-api.us-east-1.amazonaws.com/Prod" />
+            </div>
+            <div class="input-group">
+                <label for="authToken">JWT Token (from Cognito)</label>
+                <input type="text" id="authToken" placeholder="Paste your JWT token here..." />
+            </div>
+            <button onclick="saveConfig()">Save Configuration</button>
+            <button onclick="testAuth()">Test Authentication</button>
+        </div>
+
+        <!-- Test 1: Get Upload URL -->
+        <div class="test-section">
+            <h2>
+                <span class="status-badge status-pending" id="status-upload-url">PENDING</span>
+                Test 1: Get Upload URL
+            </h2>
+            <p style="color: #666; margin-bottom: 15px;">Tests the /upload-url endpoint to get a presigned S3 URL</p>
+            <div class="input-group">
+                <label for="fileName">File Name</label>
+                <input type="text" id="fileName" value="test-resume.pdf" />
+            </div>
+            <div class="input-group">
+                <label for="contentType">Content Type</label>
+                <select id="contentType">
+                    <option value="application/pdf">application/pdf</option>
+                    <option value="application/vnd.openxmlformats-officedocument.wordprocessingml.document">application/vnd.openxmlformats-officedocument.wordprocessingml.document</option>
+                    <option value="text/plain">text/plain</option>
+                </select>
+            </div>
+            <button onclick="testGetUploadUrl()">Test Get Upload URL</button>
+            <div id="result-upload-url" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 2: Upload File to S3 -->
+        <div class="test-section">
+            <h2>
+                <span class="status-badge status-pending" id="status-upload-s3">PENDING</span>
+                Test 2: Upload File to S3
+            </h2>
+            <p style="color: #666; margin-bottom: 15px;">Tests uploading a file to S3 using the presigned URL</p>
+            <div class="input-group">
+                <label>Select a file to upload</label>
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileInput" onchange="updateFileName()" />
+                    <label for="fileInput" class="file-input-label">Choose File</label>
+                    <span class="file-name" id="selectedFileName">No file selected</span>
+                </div>
+            </div>
+            <button onclick="testUploadToS3()" id="uploadBtn" disabled>Test Upload to S3</button>
+            <div id="result-upload-s3" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 3: Analyze Resume -->
+        <div class="test-section">
+            <h2>
+                <span class="status-badge status-pending" id="status-analyze">PENDING</span>
+                Test 3: Analyze Resume
+            </h2>
+            <p style="color: #666; margin-bottom: 15px;">Tests the /analyze endpoint with resume and job description</p>
+            <div class="input-group">
+                <label for="resumeId">Resume ID (S3 Key from upload)</label>
+                <input type="text" id="resumeId" placeholder="Will be auto-filled after upload" />
+            </div>
+            <div class="input-group">
+                <label for="jobDescription">Job Description</label>
+                <textarea id="jobDescription" placeholder="Enter job description here...">We are looking for a Senior Software Engineer with 5+ years of experience in Python, AWS, and React. Must have strong problem-solving skills and experience with microservices architecture.</textarea>
+            </div>
+            <button onclick="testAnalyze()">Test Analyze</button>
+            <div id="result-analyze" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 4: Get Resume -->
+        <div class="test-section">
+            <h2>
+                <span class="status-badge status-pending" id="status-get-resume">PENDING</span>
+                Test 4: Get Resume
+            </h2>
+            <p style="color: #666; margin-bottom: 15px;">Tests the /resumes/{id} endpoint to retrieve analysis results</p>
+            <div class="input-group">
+                <label for="getResumeId">Resume ID</label>
+                <input type="text" id="getResumeId" placeholder="Will be auto-filled after analyze" />
+            </div>
+            <button onclick="testGetResume()">Test Get Resume</button>
+            <div id="result-get-resume" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 5: List Resumes -->
+        <div class="test-section">
+            <h2>
+                <span class="status-badge status-pending" id="status-list-resumes">PENDING</span>
+                Test 5: List Resumes
+            </h2>
+            <p style="color: #666; margin-bottom: 15px;">Tests the /resumes endpoint to list all user resumes</p>
+            <button onclick="testListResumes()">Test List Resumes</button>
+            <div id="result-list-resumes" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 6: Run All Tests -->
+        <div class="test-section">
+            <h2>🚀 Run All Tests</h2>
+            <p style="color: #666; margin-bottom: 15px;">Execute all tests in sequence (requires file selection)</p>
+            <button onclick="runAllTests()" style="background: #4caf50; font-size: 16px; padding: 15px 30px;">
+                Run Complete Test Suite
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let uploadedS3Key = null;
+        let uploadUrl = null;
+        let testStats = {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            corsErrors: 0
+        };
+
+        // Load saved config
+        window.onload = function() {
+            const savedApiUrl = localStorage.getItem('apiUrl');
+            const savedToken = localStorage.getItem('authToken');
+            if (savedApiUrl) document.getElementById('apiUrl').value = savedApiUrl;
+            if (savedToken) {
+                document.getElementById('authToken').value = savedToken;
+                updateAuthStatus(true);
+            }
+        };
+
+        function saveConfig() {
+            const apiUrl = document.getElementById('apiUrl').value;
+            const authToken = document.getElementById('authToken').value;
+            localStorage.setItem('apiUrl', apiUrl);
+            localStorage.setItem('authToken', authToken);
+            alert('Configuration saved!');
+            if (authToken) updateAuthStatus(true);
+        }
+
+        function updateAuthStatus(isAuthenticated) {
+            const statusDiv = document.getElementById('authStatus');
+            const statusText = document.getElementById('authStatusText');
+            if (isAuthenticated) {
+                statusDiv.className = 'auth-status authenticated';
+                statusText.textContent = 'Authenticated ✓';
+            } else {
+                statusDiv.className = 'auth-status not-authenticated';
+                statusText.textContent = 'Not Authenticated ✗';
+            }
+        }
+
+        function showAuthInstructions() {
+            alert(`To authenticate:
+1. Open your frontend application (http://localhost:3000)
+2. Sign in with your Cognito credentials
+3. Open browser DevTools (F12)
+4. Go to Console tab
+5. Run: localStorage.getItem('CognitoIdentityServiceProvider.47r8jr49dj0c13kpo101hlvtgl.LastAuthUser')
+6. Then run: localStorage.getItem('CognitoIdentityServiceProvider.47r8jr49dj0c13kpo101hlvtgl.[username].idToken')
+7. Copy the token and paste it in the JWT Token field above
+8. Click "Save Configuration"`);
+        }
+
+        function updateFileName() {
+            const fileInput = document.getElementById('fileInput');
+            const fileNameSpan = document.getElementById('selectedFileName');
+            if (fileInput.files.length > 0) {
+                fileNameSpan.textContent = fileInput.files[0].name;
+                document.getElementById('fileName').value = fileInput.files[0].name;
+            } else {
+                fileNameSpan.textContent = 'No file selected';
+            }
+        }
+
+        function updateTestStatus(testId, status, message) {
+            const badge = document.getElementById(`status-${testId}`);
+            const result = document.getElementById(`result-${testId}`);
+            
+            badge.className = `status-badge status-${status}`;
+            badge.textContent = status.toUpperCase();
+            
+            result.style.display = 'block';
+            result.className = `result ${status}`;
+            result.textContent = message;
+
+            // Update stats
+            testStats.total++;
+            if (status === 'success') testStats.passed++;
+            if (status === 'error') testStats.failed++;
+            
+            updateSummary();
+        }
+
+        function updateSummary() {
+            document.getElementById('totalTests').textContent = testStats.total;
+            document.getElementById('passedTests').textContent = testStats.passed;
+            document.getElementById('failedTests').textContent = testStats.failed;
+            document.getElementById('corsErrors').textContent = testStats.corsErrors;
+        }
+
+        function getHeaders() {
+            const token = document.getElementById('authToken').value;
+            return {
+                'Authorization': token ? `Bearer ${token}` : '',
+                'Content-Type': 'application/json'
+            };
+        }
+
+        function getApiUrl() {
+            return document.getElementById('apiUrl').value;
+        }
+
+        function checkCorsHeaders(response) {
+            const corsHeaders = {
+                'access-control-allow-origin': response.headers.get('access-control-allow-origin'),
+                'access-control-allow-headers': response.headers.get('access-control-allow-headers'),
+                'access-control-allow-methods': response.headers.get('access-control-allow-methods')
+            };
+            
+            let corsCheck = '\n\n=== CORS Headers Check ===\n';
+            let hasCorsIssue = false;
+            
+            if (!corsHeaders['access-control-allow-origin']) {
+                corsCheck += '❌ Missing: Access-Control-Allow-Origin\n';
+                hasCorsIssue = true;
+            } else {
+                corsCheck += `✓ Access-Control-Allow-Origin: ${corsHeaders['access-control-allow-origin']}\n`;
+            }
+            
+            if (!corsHeaders['access-control-allow-headers']) {
+                corsCheck += '❌ Missing: Access-Control-Allow-Headers\n';
+                hasCorsIssue = true;
+            } else {
+                corsCheck += `✓ Access-Control-Allow-Headers: ${corsHeaders['access-control-allow-headers']}\n`;
+            }
+            
+            if (!corsHeaders['access-control-allow-methods']) {
+                corsCheck += '❌ Missing: Access-Control-Allow-Methods\n';
+                hasCorsIssue = true;
+            } else {
+                corsCheck += `✓ Access-Control-Allow-Methods: ${corsHeaders['access-control-allow-methods']}\n`;
+            }
+            
+            if (hasCorsIssue) testStats.corsErrors++;
+            
+            return corsCheck;
+        }
+
+        async function testAuth() {
+            const token = document.getElementById('authToken').value;
+            if (!token) {
+                alert('Please enter a JWT token first');
+                return;
+            }
+            
+            try {
+                // Try to decode the JWT to check if it's valid
+                const parts = token.split('.');
+                if (parts.length !== 3) {
+                    throw new Error('Invalid JWT format');
+                }
+                const payload = JSON.parse(atob(parts[1]));
+                const exp = payload.exp * 1000;
+                const now = Date.now();
+                
+                if (exp < now) {
+                    alert('Token has expired! Please get a new token.');
+                    updateAuthStatus(false);
+                } else {
+                    const timeLeft = Math.floor((exp - now) / 1000 / 60);
+                    alert(`Token is valid! Expires in ${timeLeft} minutes.\n\nUser: ${payload['cognito:username'] || payload.sub}`);
+                    updateAuthStatus(true);
+                }
+            } catch (error) {
+                alert('Invalid token format: ' + error.message);
+                updateAuthStatus(false);
+            }
+        }
+
+        async function testGetUploadUrl() {
+            const fileName = document.getElementById('fileName').value;
+            const contentType = document.getElementById('contentType').value;
+            const apiUrl = getApiUrl();
+            
+            try {
+                const url = `${apiUrl}/upload-url?fileName=${encodeURIComponent(fileName)}&contentType=${encodeURIComponent(contentType)}`;
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: getHeaders()
+                });
+
+                const corsCheck = checkCorsHeaders(response);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    uploadUrl = data.uploadUrl;
+                    uploadedS3Key = data.key;
+                    document.getElementById('resumeId').value = data.key;
+                    document.getElementById('getResumeId').value = data.key;
+                    document.getElementById('uploadBtn').disabled = false;
+                    
+                    updateTestStatus('upload-url', 'success', 
+                        `✓ Status: ${response.status}\n` +
+                        `✓ Upload URL received\n` +
+                        `✓ S3 Key: ${data.key}\n` +
+                        corsCheck +
+                        `\n\nFull Response:\n${JSON.stringify(data, null, 2)}`
+                    );
+                } else {
+                    updateTestStatus('upload-url', 'error', 
+                        `✗ Status: ${response.status}\n` +
+                        `✗ Error: ${data.message || data.Message || 'Unknown error'}\n` +
+                        corsCheck +
+                        `\n\nFull Response:\n${JSON.stringify(data, null, 2)}`
+                    );
+                }
+            } catch (error) {
+                updateTestStatus('upload-url', 'error', 
+                    `✗ Network Error: ${error.message}\n` +
+                    `This might be a CORS issue if you see "Failed to fetch"`
+                );
+                if (error.message.includes('Failed to fetch')) {
+                    testStats.corsErrors++;
+                    updateSummary();
+                }
+            }
+        }
+
+        async function testUploadToS3() {
+            if (!uploadUrl) {
+                alert('Please run "Test Get Upload URL" first');
+                return;
+            }
+            
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files.length) {
+                alert('Please select a file first');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            
+            try {
+                const response = await fetch(uploadUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': file.type
+                    },
+                    body: file
+                });
+                
+                if (response.ok || response.status === 200) {
+                    updateTestStatus('upload-s3', 'success', 
+                        `✓ Status: ${response.status}\n` +
+                        `✓ File uploaded successfully to S3\n` +
+                        `✓ File: ${file.name} (${file.size} bytes)\n` +
+                        `✓ S3 Key: ${uploadedS3Key}\n\n` +
+                        `Note: S3 presigned URLs don't return CORS headers in the response`
+                    );
+                } else {
+                    updateTestStatus('upload-s3', 'error', 
+                        `✗ Status: ${response.status}\n` +
+                        `✗ Upload failed\n` +
+                        `Response: ${await response.text()}`
+                    );
+                }
+            } catch (error) {
+                updateTestStatus('upload-s3', 'error', 
+                    `✗ Network Error: ${error.message}`
+                );
+            }
+        }
+
+        async function testAnalyze() {
+            const resumeId = document.getElementById('resumeId').value;
+            const jobDescription = document.getElementById('jobDescription').value;
+            const apiUrl = getApiUrl();
+            
+            if (!resumeId || !jobDescription) {
+                alert('Please provide both Resume ID and Job Description');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${apiUrl}/analyze`, {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({
+                        ResumeId: resumeId,
+                        JobDescription: jobDescription
+                    })
+                });
+                
+                const corsCheck = checkCorsHeaders(response);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Auto-fill the get resume ID if we got a resumeId back
+                    if (data.resumeId || data.ResumeId) {
+                        const id = data.resumeId || data.ResumeId;
+                        document.getElementById('getResumeId').value = id;
+                    }
+                    
+                    updateTestStatus('analyze', 'success', 
+                        `✓ Status: ${response.status}\n` +
+                        `✓ Analysis completed\n` +
+                        corsCheck +
+                        `\n\nFull Response:\n${JSON.stringify(data, null, 2)}`
+                    );
+                } else {
+                    updateTestStatus('analyze', 'error', 
+                        `✗ Status: ${response.status}\n` +
+                        `✗ Error: ${data.message || data.Message || data.ErrorType || 'Unknown error'}\n` +
+                        corsCheck +
+                        `\n\nFull Response:\n${JSON.stringify(data, null, 2)}`
+                    );
+                }
+            } catch (error) {
+                updateTestStatus('analyze', 'error', 
+                    `✗ Network Error: ${error.message}\n` +
+                    `This might be a CORS issue if you see "Failed to fetch"`
+                );
+                if (error.message.includes('Failed to fetch')) {
+                    testStats.corsErrors++;
+                    updateSummary();
+                }
+            }
+        }
+
+        async function testGetResume() {
+            const resumeId = document.getElementById('getResumeId').value;
+            const apiUrl = getApiUrl();
+            
+            if (!resumeId) {
+                alert('Please provide a Resume ID');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${apiUrl}/resumes/${encodeURIComponent(resumeId)}`, {
+                    method: 'GET',
+                    headers: getHeaders()
+                });
+                
+                const corsCheck = checkCorsHeaders(response);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    updateTestStatus('get-resume', 'success', 
+                        `✓ Status: ${response.status}\n` +
+                        `✓ Resume data retrieved\n` +
+                        corsCheck +
+                        `\n\nFull Response:\n${JSON.stringify(data, null, 2)}`
+                    );
+                } else {
+                    updateTestStatus('get-resume', 'error', 
+                        `✗ Status: ${response.status}\n` +
+                        `✗ Error: ${data.message || data.Message || data.ErrorType || 'Unknown error'}\n` +
+                        corsCheck +
+                        `\n\nFull Response:\n${JSON.stringify(data, null, 2)}`
+                    );
+                }
+            } catch (error) {
+                updateTestStatus('get-resume', 'error', 
+                    `✗ Network Error: ${error.message}\n` +
+                    `This might be a CORS issue if you see "Failed to fetch"`
+                );
+                if (error.message.includes('Failed to fetch')) {
+                    testStats.corsErrors++;
+                    updateSummary();
+                }
+            }
+        }
+
+        async function testListResumes() {
+            const apiUrl = getApiUrl();
+            
+            try {
+                const response = await fetch(`${apiUrl}/resumes`, {
+                    method: 'GET',
+                    headers: getHeaders()
+                });
+                
+                const corsCheck = checkCorsHeaders(response);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const count = Array.isArray(data) ? data.length : 0;
+                    updateTestStatus('list-resumes', 'success', 
+                        `✓ Status: ${response.status}\n` +
+                        `✓ Retrieved ${count} resume(s)\n` +
+                        corsCheck +
+                        `\n\nFull Response:\n${JSON.stringify(data, null, 2)}`
+                    );
+                } else {
+                    updateTestStatus('list-resumes', 'error', 
+                        `✗ Status: ${response.status}\n` +
+                        `✗ Error: ${data.message || data.Message || data.ErrorType || 'Unknown error'}\n` +
+                        corsCheck +
+                        `\n\nFull Response:\n${JSON.stringify(data, null, 2)}`
+                    );
+                }
+            } catch (error) {
+                updateTestStatus('list-resumes', 'error', 
+                    `✗ Network Error: ${error.message}\n` +
+                    `This might be a CORS issue if you see "Failed to fetch"`
+                );
+                if (error.message.includes('Failed to fetch')) {
+                    testStats.corsErrors++;
+                    updateSummary();
+                }
+            }
+        }
+
+        async function runAllTests() {
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files.length) {
+                alert('Please select a file before running all tests');
+                return;
+            }
+            
+            const token = document.getElementById('authToken').value;
+            if (!token) {
+                alert('Please provide a JWT token before running all tests');
+                return;
+            }
+            
+            // Reset stats
+            testStats = { total: 0, passed: 0, failed: 0, corsErrors: 0 };
+            updateSummary();
+            
+            alert('Starting complete test suite...\n\nThis will take about 10-15 seconds.');
+            
+            // Test 1: Get Upload URL
+            await testGetUploadUrl();
+            await sleep(1000);
+            
+            // Test 2: Upload to S3
+            await testUploadToS3();
+            await sleep(2000);
+            
+            // Wait for backend parser to process (in real scenario)
+            alert('Waiting 5 seconds for backend to process the file...');
+            await sleep(5000);
+            
+            // Test 3: Analyze
+            await testAnalyze();
+            await sleep(2000);
+            
+            // Test 4: Get Resume
+            await testGetResume();
+            await sleep(1000);
+            
+            // Test 5: List Resumes
+            await testListResumes();
+            
+            // Show summary
+            alert(`Test Suite Complete!\n\nTotal: ${testStats.total}\nPassed: ${testStats.passed}\nFailed: ${testStats.failed}\nCORS Errors: ${testStats.corsErrors}`);
+        }
+        
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+    </script>
+</body>
+</html>

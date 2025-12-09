@@ -1,0 +1,58 @@
+# AWS SAM
+.aws-sam/
+
+# AI Agent / IDE files
+.kiro/
+.agent/
+.vscode/
+
+# Logs and Temporary files
+*.log
+logs-*.json
+test-*.json
+response.json
+error.txt
+Example.txt
+backend/lambda-errors.txt
+backend/list-resumes-errors.txt
+backend/nlp-recent.txt
+
+# Backend Scripts and Temporary Files (User Specified)
+backend/check-costs.ps1
+backend/check-deployment.ps1
+backend/deploy-auth-fix.ps1
+backend/deploy-cors-fix.ps1
+backend/deploy-fix.ps1
+backend/diagnose-api.ps1
+backend/fix-cors-and-404.ps1
+backend/setup-budget.ps1
+backend/test-deployment.ps1
+backend/test-endpoints.ps1
+backend/test-parser.ps1
+backend/template-optimized.yaml
+backend/test-files/
+backend/test/TheAnalyzer.Tests/
+backend/test/TheParser.Tests/
+
+# Documentation / Idea Files
+docs/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# User specific / Personal files
+*.pdf
+*.docx
+# Exclude sample files if strictly personal, but maybe keep samples if generic. 
+# Assuming LeDangKhoa-CV-FPTSoft.pdf is personal.
+LeDangKhoa-CV-FPTSoft.pdf
+
+# Dependency directories (redundant if in subfolders but good safety)
+node_modules/
+bin/
+obj/
+
+# Local Environment
+.env
+.env.local

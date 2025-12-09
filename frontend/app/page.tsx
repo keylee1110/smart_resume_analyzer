@@ -1,287 +1,269 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { ArrowRight, FileText, BarChart3, Zap, Target } from "lucide-react"
-import Link from "next/link"
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Sparkles, TrendingUp, Target, Zap, ArrowRight, CheckCircle2, UploadCloud, FileText, BrainCircuit } from "lucide-react";
+import { motion } from "framer-motion";
 
-export default function Home() {
-  const features = [
-    {
-      icon: FileText,
-      title: "Smart Analysis",
-      description: "Advanced algorithms analyze every aspect of your resume in seconds",
-    },
-    {
-      icon: Zap,
-      title: "Instant Feedback",
-      description: "Get real-time recommendations to boost your resume impact",
-    },
-    {
-      icon: Target,
-      title: "Job Matching",
-      description: "Align your skills with specific job descriptions for better opportunities",
-    },
-    {
-      icon: BarChart3,
-      title: "Performance Score",
-      description: "See your resume strength across multiple professional dimensions",
-    },
-  ]
-
-  const stats = [
-    { label: "Resumes Analyzed", value: "50K+" },
-    { label: "Success Rate", value: "92%" },
-    { label: "Average Improvement", value: "+35%" },
-  ]
-
-  const steps = [
-    {
-      step: "1",
-      title: "Upload Resume",
-      description: "Upload your resume in PDF or DOCX format - takes just one click",
-    },
-    {
-      step: "2",
-      title: "Smart Analysis",
-      description: "Our advanced tool instantly analyzes your resume against industry standards",
-    },
-    {
-      step: "3",
-      title: "Get Insights",
-      description: "Receive detailed recommendations and an actionable improvement plan",
-    },
-    {
-      step: "4",
-      title: "Land Your Job",
-      description: "Apply with confidence knowing your resume is optimized for success",
-    },
-  ]
-
+export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <FileText className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-bold">Smart Resume Analyzer</span>
-            </Link>
-            <div className="flex items-center gap-3">
-              <Link href="/signin">
-                <Button variant="ghost" size="sm">
-                  Sign In
-                </Button>
-              </Link>
-              <Link href="/signup">
-                <Button size="sm" className="gap-2">
-                  Get Started <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
+    <div className="min-h-screen flex flex-col bg-background selection:bg-primary/20">
+      {/* Navbar */}
+      <header className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-lg border-b border-border/40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Sparkles className="w-5 h-5 text-white" />
             </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        {/* Gradient background effect */}
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-background to-background" />
-
-        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-32 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 mb-6">
-            <FileText className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-primary">Powered by Advanced Analysis</span>
-          </div>
-
-          <h1 className="text-5xl sm:text-6xl font-bold tracking-tight mb-6 text-balance">
-            Your Resume,{" "}
-            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Perfected</span>
-          </h1>
-
-          <p className="mx-auto max-w-2xl text-xl text-muted-foreground mb-10 text-balance leading-relaxed">
-            Get intelligent insights, real-time feedback, and actionable recommendations to make your resume stand out
-            to recruiters and hiring managers.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-            <Link href="/signup">
-              <Button size="lg" className="gap-2">
-                Analyze Your Resume <ArrowRight className="h-5 w-5" />
+            <span className="font-bold text-xl tracking-tight">Smart Resume</span>
+          </Link>
+          
+          <nav className="flex items-center gap-4">
+            <Link href="/login">
+              <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
+                Sign In
               </Button>
             </Link>
-            <Button size="lg" variant="outline">
-              View Demo
-            </Button>
+            <Link href="/signup">
+              <Button className="bg-primary hover:bg-primary/90 text-white rounded-full px-6">
+                Get Started
+              </Button>
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      <main className="flex-grow pt-16">
+        {/* Hero Section */}
+        <section className="relative overflow-hidden pt-20 pb-32 lg:pt-32 lg:pb-40">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full z-0 pointer-events-none">
+             <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+             <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 pt-8 border-t border-border">
-            {stats.map((stat, index) => (
-              <div key={index} className="flex flex-col items-center">
-                <div className="text-3xl font-bold text-primary mb-1">{stat.value}</div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-8">
+                <Sparkles className="w-4 h-4" />
+                <span>Powered by Advanced AI</span>
               </div>
-            ))}
+              
+              <h1 className="text-5xl md:text-7xl font-bold font-heading tracking-tight mb-6 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                Optimize Your Resume <br />
+                <span className="text-primary">In Seconds</span>
+              </h1>
+              
+              <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
+                Stop guessing what recruiters want. Our AI analyzes your resume against job descriptions to give you a personalized fit score and actionable improvements.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Link href="/dashboard">
+                  <Button size="lg" className="h-12 px-8 rounded-full text-lg bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all">
+                    Analyze My Resume
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </Link>
+                <Link href="#how-it-works">
+                  <Button size="lg" variant="outline" className="h-12 px-8 rounded-full text-lg border-2">
+                    How it Works
+                  </Button>
+                </Link>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Features Section */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold mb-4 text-balance">Everything you need to succeed</h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Our comprehensive suite of tools helps you optimize every aspect of your resume
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {features.map((feature, index) => {
-            const Icon = feature.icon
-            return (
-              <Card
-                key={index}
-                className="border border-border/50 bg-card/50 backdrop-blur hover:border-primary/50 transition-colors"
-              >
-                <CardContent className="pt-6">
-                  <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                    <Icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="font-semibold text-foreground mb-2">{feature.title}</h3>
-                  <p className="text-sm text-muted-foreground">{feature.description}</p>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 bg-card/30 rounded-2xl border border-border my-12">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold mb-4 text-balance">Four steps to success</h2>
-          <p className="text-lg text-muted-foreground">Get your resume analyzed and optimized in minutes</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {steps.map((item, index) => (
-            <div key={index} className="relative">
-              {index < steps.length - 1 && (
-                <div className="hidden lg:block absolute top-8 left-[calc(100%+1rem)] right-auto w-[calc(100%-2rem)] h-0.5 bg-gradient-to-r from-primary/50 to-transparent" />
-              )}
-              <div className="flex flex-col items-start">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent text-primary-foreground font-bold text-lg mb-4">
-                  {item.step}
+        {/* Stats/Social Proof (Optional) */}
+        <div className="border-y border-border/40 bg-muted/30">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+              {[
+                { label: "Resumes Analyzed", value: "10,000+" },
+                { label: "Success Rate", value: "94%" },
+                { label: "Time Saved", value: "5hrs/wk" },
+                { label: "Interviews Landed", value: "2,500+" },
+              ].map((stat, i) => (
+                <div key={i}>
+                  <div className="text-3xl font-bold text-foreground mb-1">{stat.value}</div>
+                  <div className="text-sm text-muted-foreground">{stat.label}</div>
                 </div>
-                <h3 className="font-semibold text-lg text-foreground mb-2">{item.title}</h3>
-                <p className="text-muted-foreground">{item.description}</p>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-20 text-center">
-        <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background p-12">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-balance">Ready to transform your resume?</h2>
-          <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Join thousands of job seekers who have already improved their resumes with professional analysis and
-            recommendations.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/signup">
-              <Button size="lg" className="gap-2">
-                Start Free Analysis <ArrowRight className="h-5 w-5" />
-              </Button>
-            </Link>
-            <Button size="lg" variant="outline">
-              Learn More
-            </Button>
           </div>
         </div>
-      </section>
+
+        {/* Features Grid */}
+        <section className="py-24 bg-background">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Everything you need to get hired</h2>
+              <p className="text-lg text-muted-foreground">Comprehensive tools to perfect your application</p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              {[
+                {
+                  icon: Target,
+                  title: "Targeted Insights",
+                  desc: "Get specific recommendations based on the job description you're applying for.",
+                  color: "text-blue-500",
+                  bg: "bg-blue-500/10"
+                },
+                {
+                  icon: BrainCircuit,
+                  title: "AI Analysis",
+                  desc: "Advanced NLP algorithms detect missing keywords and skills gaps instantly.",
+                  color: "text-purple-500",
+                  bg: "bg-purple-500/10"
+                },
+                {
+                  icon: TrendingUp,
+                  title: "Score Tracking",
+                  desc: "Monitor your resume's fit score improvements over time as you edit.",
+                  color: "text-emerald-500",
+                  bg: "bg-emerald-500/10"
+                }
+              ].map((feature, i) => (
+                <div key={i} className="p-8 rounded-3xl border border-border/50 bg-card hover:shadow-lg transition-all hover:-translate-y-1">
+                  <div className={`w-14 h-14 rounded-2xl ${feature.bg} ${feature.color} flex items-center justify-center mb-6`}>
+                    <feature.icon className="w-7 h-7" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
+                  <p className="text-muted-foreground leading-relaxed">
+                    {feature.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* How It Works */}
+        <section id="how-it-works" className="py-24 bg-muted/30">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid lg:grid-cols-2 gap-16 items-center">
+              <div className="space-y-8">
+                <h2 className="text-3xl md:text-4xl font-bold">
+                  Three steps to your <br />
+                  <span className="text-primary">dream job</span>
+                </h2>
+                
+                <div className="space-y-6">
+                  {[
+                    {
+                      step: "01",
+                      title: "Upload Your Resume",
+                      desc: "Upload your existing PDF or DOCX resume to our secure platform."
+                    },
+                    {
+                      step: "02",
+                      title: "Paste Job Description",
+                      desc: "Add the job description you want to apply for to get targeted analysis."
+                    },
+                    {
+                      step: "03",
+                      title: "Get Actionable Feedback",
+                      desc: "Receive instant feedback, missing keywords, and a match score."
+                    }
+                  ].map((step, i) => (
+                    <div key={i} className="flex gap-4">
+                      <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-background border border-border flex items-center justify-center font-bold text-lg text-primary shadow-sm">
+                        {step.step}
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-bold mb-1">{step.title}</h4>
+                        <p className="text-muted-foreground">{step.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-3xl blur-2xl opacity-20 transform rotate-3" />
+                <div className="relative bg-background border border-border rounded-3xl p-8 shadow-2xl">
+                    {/* Mock Interface */}
+                    <div className="space-y-6">
+                        <div className="flex items-center justify-between border-b border-border pb-4">
+                            <div className="space-y-1">
+                                <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+                                <div className="h-3 w-24 bg-muted/50 rounded animate-pulse" />
+                            </div>
+                            <div className="w-12 h-12 rounded-full border-4 border-emerald-500/20 flex items-center justify-center text-emerald-500 font-bold">
+                                92
+                            </div>
+                        </div>
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-emerald-600 bg-emerald-500/10 p-3 rounded-lg text-sm font-medium">
+                                <CheckCircle2 className="w-4 h-4" />
+                                Strong keywords match found
+                            </div>
+                            <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                                <div className="h-full w-[92%] bg-emerald-500 rounded-full" />
+                            </div>
+                            <div className="space-y-2 pt-2">
+                                <div className="h-3 w-3/4 bg-muted rounded animate-pulse" />
+                                <div className="h-3 w-1/2 bg-muted rounded animate-pulse" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="py-24">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="relative rounded-[2.5rem] overflow-hidden bg-primary px-6 py-16 md:px-16 md:py-20 text-center text-white">
+              <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
+              <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
+              <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-black/10 rounded-full blur-3xl" />
+              
+              <div className="relative z-10">
+                <h2 className="text-3xl md:text-5xl font-bold font-heading mb-6">
+                  Ready to land your next interview?
+                </h2>
+                <p className="text-blue-100 text-lg md:text-xl max-w-2xl mx-auto mb-10">
+                  Join thousands of job seekers who have optimized their resumes and accelerated their careers.
+                </p>
+                <Link href="/signup">
+                  <Button size="lg" variant="secondary" className="h-14 px-8 rounded-full text-lg font-semibold bg-white text-primary hover:bg-white/90 shadow-xl">
+                    Get Started for Free
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
 
       {/* Footer */}
-      <footer className="border-t border-border mt-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                  <FileText className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <span className="font-bold">Smart Resume Analyzer</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Transform your resume with professional analysis and insights.
-              </p>
+      <footer className="border-t border-border/40 py-12 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-white" />
             </div>
-            <div>
-              <h4 className="font-semibold mb-4">Product</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>
-                  <Link href="#" className="hover:text-foreground transition-colors">
-                    Features
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="hover:text-foreground transition-colors">
-                    Pricing
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="hover:text-foreground transition-colors">
-                    FAQ
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Company</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>
-                  <Link href="#" className="hover:text-foreground transition-colors">
-                    About
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="hover:text-foreground transition-colors">
-                    Blog
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="hover:text-foreground transition-colors">
-                    Contact
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Legal</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>
-                  <Link href="#" className="hover:text-foreground transition-colors">
-                    Privacy
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="hover:text-foreground transition-colors">
-                    Terms
-                  </Link>
-                </li>
-              </ul>
-            </div>
+            <span className="font-bold text-lg">Smart Resume</span>
           </div>
-          <div className="border-t border-border pt-8 text-center text-sm text-muted-foreground">
-            <p>&copy; 2025 Smart Resume Analyzer. All rights reserved.</p>
+          <p className="text-sm text-muted-foreground">
+            &copy; {new Date().getFullYear()} Smart Resume Analyzer. All rights reserved.
+          </p>
+          <div className="flex gap-6 text-sm text-muted-foreground">
+            <Link href="#" className="hover:text-foreground">Privacy</Link>
+            <Link href="#" className="hover:text-foreground">Terms</Link>
+            <Link href="#" className="hover:text-foreground">Contact</Link>
           </div>
         </div>
       </footer>
     </div>
-  )
+  );
 }

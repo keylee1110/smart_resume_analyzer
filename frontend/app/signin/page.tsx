@@ -10,14 +10,20 @@ import { Card } from "@/components/ui/card"
 import { AlertCircle, Eye, EyeOff, FileText } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
+import { signIn, signUp, confirmSignUp } from 'aws-amplify/auth';
+import { AuthError } from 'aws-amplify/auth'; // Import AuthError
+
 export default function SignInPage() {
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmationCode, setConfirmationCode] = useState(""); // For sign-up confirmation
+  const [showConfirmation, setShowConfirmation] = useState(false); // To show confirmation input
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [oauthLoading, setOAuthLoading] = useState<"google" | "github" | null>(null)
   const [error, setError] = useState("")
+  const [successMessage, setSuccessMessage] = useState("");
 
   const validateForm = () => {
     if (!email) {
@@ -39,38 +45,102 @@ export default function SignInPage() {
     return true
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    setSuccessMessage("");
 
     if (!validateForm()) return
 
     setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      router.push("/dashboard")
-    }, 1000)
+    try {
+      await signIn({ username: email, password });
+      router.push("/dashboard");
+    } catch (err) {
+      const authError = err as AuthError;
+      if (
+        authError.name === 'UserAlreadyAuthenticatedException' ||
+        authError.message?.includes('There is already a signed in user')
+      ) {
+        console.log("User already authenticated, redirecting to dashboard...")
+        router.push("/dashboard");
+        return;
+      }
+      setError(authError.message || "An unknown error occurred during sign in.");
+      console.error("Error signing in:", authError);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault(); // Prevent default form submission
+    setError("");
+    setSuccessMessage("");
+
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+    try {
+      await signUp({
+        username: email,
+        password,
+        options: {
+          userAttributes: {
+            email: email,
+          },
+        },
+      });
+      setSuccessMessage("Verification code sent to your email. Please confirm your account.");
+      setShowConfirmation(true); // Show confirmation input
+    } catch (err) {
+      const authError = err as AuthError;
+      setError(authError.message || "An unknown error occurred during sign up.");
+      console.error("Error signing up:", authError);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleConfirmSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccessMessage("");
+
+    if (!email || !confirmationCode) {
+      setError("Email and confirmation code are required.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await confirmSignUp({ username: email, confirmationCode });
+      setSuccessMessage("Account confirmed successfully! You can now sign in.");
+      setShowConfirmation(false); // Hide confirmation after success
+      setConfirmationCode(""); // Clear code
+    } catch (err) {
+      const authError = err as AuthError;
+      if (
+        authError.name === 'UserAlreadyAuthenticatedException' ||
+        authError.message?.includes('There is already a signed in user')
+      ) {
+        console.log("User already authenticated, redirecting to dashboard...")
+        router.push("/dashboard");
+        return;
+      }
+      setError(authError.message || "An unknown error occurred during confirmation.");
+      console.error("Error confirming sign up:", authError);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleGoogleSignIn = () => {
-    setOAuthLoading("google")
-    // In production, redirect to Google OAuth endpoint
-    // For demo, simulate the flow
-    setTimeout(() => {
-      setOAuthLoading(null)
-      router.push("/dashboard")
-    }, 1000)
+    setError("Google Sign-In is not yet implemented.");
   }
 
   const handleGithubSignIn = () => {
-    setOAuthLoading("github")
-    // In production, redirect to GitHub OAuth endpoint
-    // For demo, simulate the flow
-    setTimeout(() => {
-      setOAuthLoading(null)
-      router.push("/dashboard")
-    }, 1000)
+    setError("GitHub Sign-In is not yet implemented.");
   }
 
   return (
@@ -85,8 +155,10 @@ export default function SignInPage() {
               </div>
               <h1 className="text-xl font-bold text-primary">Smart Resume Analyzer</h1>
             </Link>
-            <h2 className="text-2xl font-bold text-foreground">Sign In</h2>
-            <p className="text-muted-foreground text-sm mt-2">Access your resume analysis dashboard</p>
+            <h2 className="text-2xl font-bold text-foreground">{showConfirmation ? "Confirm Sign Up" : "Sign In"}</h2>
+            <p className="text-muted-foreground text-sm mt-2">
+              {showConfirmation ? "Enter the confirmation code sent to your email." : "Access your resume analysis dashboard"}
+            </p>
           </div>
 
           {/* Error Alert */}
@@ -97,67 +169,127 @@ export default function SignInPage() {
             </Alert>
           )}
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
-                Email Address
-              </label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value)
-                  setError("")
-                }}
-                className="w-full"
-                disabled={isLoading || oauthLoading !== null}
-              />
-            </div>
+          {/* Success Alert */}
+          {successMessage && (
+            <Alert variant="default" className="mb-6 bg-green-100 border-green-500 text-green-700">
+              <AlertDescription>{successMessage}</AlertDescription>
+            </Alert>
+          )}
 
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label htmlFor="password" className="block text-sm font-medium text-foreground">
-                  Password
+          {/* Form */}
+          {!showConfirmation ? (
+            <form onSubmit={handleSignIn} className="space-y-4">
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
+                  Email Address
                 </label>
-                <Link href="/forgot-password" className="text-xs text-primary hover:text-primary-dark font-medium">
-                  Forgot?
-                </Link>
-              </div>
-              <div className="relative">
                 <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
                   onChange={(e) => {
-                    setPassword(e.target.value)
+                    setEmail(e.target.value)
                     setError("")
+                    setSuccessMessage("");
                   }}
-                  className="w-full pr-10"
+                  className="w-full"
                   disabled={isLoading || oauthLoading !== null}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  disabled={isLoading || oauthLoading !== null}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
               </div>
-            </div>
 
-            <Button
-              type="submit"
-              className="w-full bg-primary hover:bg-primary-dark text-primary-foreground font-semibold py-2 mt-6"
-              disabled={isLoading || oauthLoading !== null}
-            >
-              {isLoading ? "Signing in..." : "Sign In"}
-            </Button>
-          </form>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label htmlFor="password" className="block text-sm font-medium text-foreground">
+                    Password
+                  </label>
+                  <Link href="/forgot-password" className="text-xs text-primary hover:text-primary-dark font-medium">
+                    Forgot?
+                  </Link>
+                </div>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value)
+                      setError("")
+                      setSuccessMessage("");
+                    }}
+                    className="w-full pr-10"
+                    disabled={isLoading || oauthLoading !== null}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    disabled={isLoading || oauthLoading !== null}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-primary hover:bg-primary-dark text-primary-foreground font-semibold py-2 mt-6"
+                disabled={isLoading || oauthLoading !== null}
+              >
+                {isLoading ? "Signing in..." : "Sign In"}
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handleConfirmSignUp} className="space-y-4">
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
+                  Email Address
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  readOnly
+                  className="w-full bg-muted"
+                />
+              </div>
+              <div>
+                <label htmlFor="confirmationCode" className="block text-sm font-medium text-foreground mb-2">
+                  Confirmation Code
+                </label>
+                <Input
+                  id="confirmationCode"
+                  type="text"
+                  placeholder="Enter your verification code"
+                  value={confirmationCode}
+                  onChange={(e) => setConfirmationCode(e.target.value)}
+                  className="w-full"
+                  disabled={isLoading}
+                />
+              </div>
+              <Button
+                type="submit"
+                className="w-full bg-primary hover:bg-primary-dark text-primary-foreground font-semibold py-2 mt-6"
+                disabled={isLoading}
+              >
+                {isLoading ? "Confirming..." : "Confirm Sign Up"}
+              </Button>
+              <Button
+                type="button"
+                variant="link"
+                onClick={() => {
+                  setError("");
+                  setSuccessMessage("");
+                  setShowConfirmation(false);
+                  setConfirmationCode("");
+                }}
+                className="w-full mt-2"
+              >
+                Back to Sign In
+              </Button>
+            </form>
+          )}
 
           {/* Divider */}
           <div className="relative my-6">
@@ -173,7 +305,7 @@ export default function SignInPage() {
             <Button
               type="button"
               variant="outline"
-              disabled={isLoading || oauthLoading !== null}
+              disabled={isLoading || oauthLoading !== null || showConfirmation}
               onClick={handleGoogleSignIn}
               className="w-full bg-transparent flex items-center justify-center gap-2"
             >
@@ -200,7 +332,7 @@ export default function SignInPage() {
             <Button
               type="button"
               variant="outline"
-              disabled={isLoading || oauthLoading !== null}
+              disabled={isLoading || oauthLoading !== null || showConfirmation}
               onClick={handleGithubSignIn}
               className="w-full bg-transparent flex items-center justify-center gap-2"
             >
@@ -214,9 +346,15 @@ export default function SignInPage() {
           {/* Sign Up Link */}
           <p className="text-center text-sm text-muted-foreground mt-6">
             Don't have an account?{" "}
-            <Link href="/signup" className="text-primary font-semibold hover:text-primary-dark">
+            <Button
+              type="button"
+              variant="link"
+              onClick={handleSignUp}
+              className="text-primary font-semibold hover:text-primary-dark p-0 h-auto"
+              disabled={isLoading || oauthLoading !== null || showConfirmation}
+            >
               Sign up
-            </Link>
+            </Button>
           </p>
         </div>
       </Card>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h1>API Connection Test</h1>
+    <button onclick="testAPI()">Test API Connection</button>
+    <button onclick="testCORS()">Test CORS</button>
+    <pre id="output"></pre>
+
+    <script>
+        const API_URL = 'https://t7hskmmg0d.execute-api.us-east-1.amazonaws.com/Prod';
+        
+        function log(message) {
+            document.getElementById('output').textContent += message + '\n';
+        }
+
+        async function testAPI() {
+            log('\n=== Testing API Connection ===');
+            try {
+                const response = await fetch(`${API_URL}/upload-url?fileName=test.pdf&contentType=application/pdf`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer test-token',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log(`Status: ${response.status}`);
+                log(`Status Text: ${response.statusText}`);
+                
+                const text = await response.text();
+                log(`Response: ${text}`);
+            } catch (error) {
+                log(`Error: ${error.message}`);
+                log(`Full error: ${JSON.stringify(error, null, 2)}`);
+            }
+        }
+
+        async function testCORS() {
+            log('\n=== Testing CORS Preflight ===');
+            try {
+                const response = await fetch(`${API_URL}/upload-url`, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Access-Control-Request-Method': 'GET',
+                        'Access-Control-Request-Headers': 'authorization,content-type'
+                    }
+                });
+                
+                log(`Status: ${response.status}`);
+                log(`CORS Headers:`);
+                log(`  Allow-Origin: ${response.headers.get('Access-Control-Allow-Origin')}`);
+                log(`  Allow-Methods: ${response.headers.get('Access-Control-Allow-Methods')}`);
+                log(`  Allow-Headers: ${response.headers.get('Access-Control-Allow-Headers')}`);
+                log(`  Max-Age: ${response.headers.get('Access-Control-Max-Age')}`);
+            } catch (error) {
+                log(`Error: ${error.message}`);
+            }
+        }
+    </script>
+</body>
+</html>
