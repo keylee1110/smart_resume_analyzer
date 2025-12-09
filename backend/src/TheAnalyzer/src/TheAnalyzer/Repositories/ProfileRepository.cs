@@ -1,5 +1,6 @@
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.DocumentModel; // Added for ScanOperator
 using Microsoft.Extensions.Logging;
 using TheAnalyzer.Interfaces;
 using TheAnalyzer.Models;
