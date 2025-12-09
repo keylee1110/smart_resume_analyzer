@@ -201,14 +201,37 @@ public class ProfileRepository : IProfileRepository
         {
             _logger.LogInformation("Retrieving profile for S3 key: {S3Key}", s3Key);
             
-            // Scan the table to find profile with matching S3Key
-            // Note: This is not optimal for large datasets. Consider adding a GSI on S3Key if needed.
-            var search = _context.ScanAsync<ProfileRecord>(new List<ScanCondition>());
-            var allProfiles = await search.GetRemainingAsync(cancellationToken);
+            // Use ScanCondition to filter on DynamoDB side instead of client side
+            // This is still a SCAN operation but transfers less data
+            var scanConditions = new List<ScanCondition>
+            {
+                new ScanCondition("S3Key", ScanOperator.Equal, s3Key)
+            };
             
-            // Filter by S3Key in memory
-            var profile = allProfiles.FirstOrDefault(p => p.S3Key == s3Key);
+            var search = _context.ScanAsync<ProfileRecord>(scanConditions);
+            var profiles = await search.GetRemainingAsync(cancellationToken);
+            var profile = profiles.FirstOrDefault();
             
+            // Fallback: If strict match fails, try decoding/encoding or partial match
+            if (profile == null)
+            {
+                _logger.LogWarning("Strict match failed for S3Key: {S3Key}. Attempting fallback search.", s3Key);
+                
+                // Try searching with URL decoded key if the original input might be encoded
+                var decodedKey = System.Net.WebUtility.UrlDecode(s3Key);
+                if (decodedKey != s3Key)
+                {
+                    _logger.LogInformation("Trying decoded key: {DecodedKey}", decodedKey);
+                    var decodedConditions = new List<ScanCondition>
+                    {
+                        new ScanCondition("S3Key", ScanOperator.Equal, decodedKey)
+                    };
+                    var decodedSearch = _context.ScanAsync<ProfileRecord>(decodedConditions);
+                    var decodedProfiles = await decodedSearch.GetRemainingAsync(cancellationToken);
+                    profile = decodedProfiles.FirstOrDefault();
+                }
+            }
+
             if (profile == null)
             {
                 _logger.LogInformation("Profile not found for S3 key: {S3Key}", s3Key);
@@ -220,7 +243,7 @@ public class ProfileRepository : IProfileRepository
                 {
                     profile.ResumeId = profile.PK.Replace("RESUME#", "");
                 }
-                _logger.LogInformation("Successfully retrieved profile for S3 key: {S3Key}", s3Key);
+                _logger.LogInformation("Successfully retrieved profile for S3 key: {S3Key}. ResumeID: {ResumeId}", s3Key, profile.ResumeId);
             }
             
             return profile;
