@@ -31,16 +31,16 @@ export function DashboardSidebar() {
       initial={{ width: 256 }}
       animate={{ width: isCollapsed ? 80 : 256 }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="bg-card border-r border-border flex flex-col h-full relative z-10"
+      className="bg-card border-r border-border flex flex-col h-full relative z-10 group/sidebar"
     >
       {/* Toggle Button */}
       <Button
-        variant="ghost"
+        variant="outline"
         size="icon"
-        className="absolute -right-3 top-9 h-6 w-6 rounded-full border border-border bg-background shadow-md z-50 hover:bg-accent hover:text-primary"
+        className="absolute -right-4 top-6 h-8 w-8 rounded-full border-border bg-background shadow-md z-50 hover:bg-accent hover:text-primary hidden md:flex items-center justify-center opacity-0 group-hover/sidebar:opacity-100 transition-opacity"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
-        {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+        {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
       </Button>
 
       {/* Logo */}

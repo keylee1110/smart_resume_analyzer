@@ -263,7 +263,7 @@ Generated on: ${new Date().toLocaleString()}
                 <div className="max-w-5xl mx-auto pb-20">
                     <div className="flex items-center justify-between mb-8">
                         <div>
-                            <h1 className="text-3xl font-bold font-heading text-white">My Resumes</h1>
+                            <h1 className="text-3xl font-bold font-heading text-foreground">My Resumes</h1>
                             <p className="text-muted-foreground">Manage your uploaded resumes and past analyses.</p>
                         </div>
                         <Button onClick={() => router.push("/upload")}>

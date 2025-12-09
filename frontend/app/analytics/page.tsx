@@ -65,7 +65,7 @@ export default function AnalyticsPage() {
             <DashboardShell>
                 <div className="max-w-6xl mx-auto pb-20">
                     <div className="mb-8">
-                        <h1 className="text-3xl font-bold font-heading text-white">Analytics</h1>
+                        <h1 className="text-3xl font-bold font-heading text-foreground">Analytics</h1>
                         <p className="text-muted-foreground">Detailed insights into your profile performance and skills.</p>
                     </div>
 
