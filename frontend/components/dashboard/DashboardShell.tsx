@@ -1,5 +1,7 @@
 "use client";
 
+"use client"; // Added this line
+
 import { useState } from "react"; // Import useState
 import { Sidebar } from "./Sidebar";
 import { motion } from "framer-motion";
