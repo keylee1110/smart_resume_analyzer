@@ -168,9 +168,9 @@ export default function AnalysisPage({ params }: { params: Promise<{ id: string 
           {/* Header */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <Link href="/resumes" className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+              <Button variant="ghost" size="icon" onClick={() => router.back()} className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
                 <ArrowLeft className="w-5 h-5" />
-              </Link>
+              </Button>
               <div className="flex gap-2">
                 <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
                   <Share2 className="w-5 h-5" />
@@ -184,7 +184,7 @@ export default function AnalysisPage({ params }: { params: Promise<{ id: string 
 
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-2xl lg:text-3xl font-bold font-heading text-foreground">{sessionName}</h1>
+                <h1 className="text-2xl lg:text-3xl font-bold font-heading text-primary">{sessionName}</h1>
               </div>
               <p className="text-muted-foreground">
                 Analysis for <span className="text-foreground font-medium">{profileData?.name || "Candidate"}</span>
