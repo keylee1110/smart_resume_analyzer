@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { User, LogOut } from "lucide-react"
+import { clearCache } from "@/lib/api"
 
 export function UserMenu() {
   const router = useRouter()
@@ -44,6 +45,7 @@ export function UserMenu() {
 
   const handleLogout = async () => {
     try {
+      clearCache()
       await signOut()
       router.push("/")
     } catch (error) {

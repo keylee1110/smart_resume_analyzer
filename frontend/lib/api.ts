@@ -108,6 +108,7 @@ export async function analyzeFit(resumeId: string, jobDescription: string): Prom
     try {
         const session = await fetchAuthSession();
         const token = session.tokens?.idToken?.toString();
+        const userId = session.tokens?.idToken?.payload?.sub;
         const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
         const restOperation = post({
@@ -125,8 +126,12 @@ export async function analyzeFit(resumeId: string, jobDescription: string): Prom
         const { body } = await restOperation.response;
         const data = await body.json();
 
-        // Invalidate resumes cache since a new analysis updates the profile
-        clearCache('resumes');
+        // Invalidate resumes cache for the specific user
+        if (userId) {
+            clearCache(`resumes_${userId}`);
+        } else {
+            clearCache('resumes');
+        }
 
         // Return the full response which includes { ResumeId, Message, Analysis }
         return data as any;
@@ -266,18 +271,20 @@ export interface ResumeProfile {
 }
 
 export async function getResumes(): Promise<ResumeProfile[]> {
-    // Check Cache First
-    const cached = getFromCache<ResumeProfile[]>('resumes', CACHE_DURATION.RESUMES);
-    if (cached) {
-        console.log("Serving resumes from cache");
-        return cached;
-    }
-
     try {
         const session = await fetchAuthSession();
         const token = session.tokens?.idToken?.toString();
+        const userId = session.tokens?.idToken?.payload?.sub;
 
-        if (!token) throw new Error("No session found");
+        if (!token || !userId) throw new Error("No session found");
+
+        // Check Cache First (User Specific)
+        const cacheKey = `resumes_${userId}`;
+        const cached = getFromCache<ResumeProfile[]>(cacheKey, CACHE_DURATION.RESUMES);
+        if (cached) {
+            console.log("Serving resumes from cache for user:", userId);
+            return cached;
+        }
 
         const restOperation = get({
             apiName: API_NAME,
@@ -292,7 +299,7 @@ export async function getResumes(): Promise<ResumeProfile[]> {
         const data = await body.json() as unknown as ResumeProfile[];
 
         // Update Cache
-        setInCache('resumes', data);
+        setInCache(cacheKey, data);
 
         return data;
     } catch (error) {
